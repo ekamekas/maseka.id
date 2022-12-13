@@ -1,0 +1,21 @@
+@startuml
+actor user
+cloud internet
+node Localhost {
+    [Application]
+    [Grafana]
+    [Promtail]
+    [Loki]
+    file storage
+    file "/var/log"
+}
+
+user-->internet
+internet-->Grafana :http:3000
+internet-->Application :http:8080
+Application-->"/var/log" :app.log
+Promtail-->"/var/log" :"scrape ./*.log"
+Promtail->Loki :http
+Loki-->storage
+Grafana-->Loki :http
+@enduml
