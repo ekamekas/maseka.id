@@ -1,0 +1,48 @@
+services:
+  app:
+    image: "ekamekas/promtail-demo-app"
+    volumes:
+      - "log-data:/var/log"
+    ports:
+      - "8080:8080"
+    networks:
+      - front-tier
+      - back-tier
+  log-collector:
+    image: "grafana/promtail"
+    volumes:
+      - "log-data:/var/log"
+      - "./promtail-config.yaml:/etc/promtail/promtail-config.yaml"
+    networks:
+      - back-tier
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    depends_on:
+      - log-aggregator
+  log-aggregator:
+    image: "grafana/loki"
+    volumes:
+      - "./loki-config.yaml:/etc/loki/loki-config.yaml"
+    networks:
+      - back-tier
+    command: -config.file=/etc/loki/local-config.yaml
+  monitoring:
+    image: "grafana/grafana-oss"
+    volumes:
+      - "./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml"
+    ports:
+      - "3000:3000"
+    networks:
+      - front-tier
+      - back-tier
+
+networks:
+  front-tier: {}
+  back-tier: {}
+
+volumes:
+  log-data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/log
