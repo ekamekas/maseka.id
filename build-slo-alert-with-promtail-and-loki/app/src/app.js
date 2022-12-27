@@ -11,7 +11,7 @@ app.get('/user/info', async (req, res) => {
     };
 
     try {
-        if(shouldSimulateError(5)) {
+        if(shouldSimulateError(-1)) {
             authentication = null;
         }
 
@@ -44,14 +44,14 @@ async function getUserInfo(authentication) {
     }
 
 
-    if(shouldSimulateError(10)) {
+    if(shouldSimulateError(1)) {
         const err = new Error("Server cannot handle the request");
         err.name = "InternalError";
 
         throw err;
     }
 
-    if(shouldSimulateError(90)) {
+    if(shouldSimulateError(-1)) {
         await sleep(100);  // sleep 100ms
     }
 
@@ -62,7 +62,7 @@ async function getUserInfo(authentication) {
 // utility function to simulate error with pseudo-randomness
 function shouldSimulateError(percentError) {
     percentError = percentError || 30
-    const randomNumber = Math.floor(Math.random() * 100);
+    const randomNumber = Math.floor(Math.random() * 1000);
 
     return randomNumber <= percentError;
 }

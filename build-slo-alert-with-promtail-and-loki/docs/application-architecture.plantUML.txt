@@ -1,16 +1,20 @@
 @startuml
 actor user
 cloud internet
+cloud Jira
+cloud Discord
 node Localhost {
     [Application]
     [Grafana]
     [Promtail]
     [Loki]
+    [Middleware]
     file storage
     file "/var/log"
 }
 
 user-->internet
+internet-->Jira
 internet-->Grafana :http:3000
 internet-->Application :http:8080
 Application-->"/var/log" :app.log
@@ -18,4 +22,7 @@ Promtail-->"/var/log" :"scrape ./*.log"
 Promtail->Loki :http
 Loki-->storage
 Grafana-->Loki :http
+Grafana-->Middleware
+Grafana-->Discord
+Middleware-->Jira
 @enduml
