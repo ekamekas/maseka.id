@@ -1,0 +1,214 @@
+apiVersion: 1
+
+contactPoints:
+  - orgID: 1
+    name: sev_1_contact_point
+    receivers:
+      - uid: monitoring_dicord
+        type: discord
+        settings:
+          url: https://discord.com/api/webhooks/828888071205289984/uEPx6x9KP0yWH9M_IwqhGc8o4EDB-X2XKk7ewzCu38Jdu53Y-f-FyI_h-DEm6HkjYaBb
+          message: |
+            {{ template "monitoring_template" . }}
+  - orgID: 1
+    name: sev_2_contact_point
+    receivers:
+      - uid: monitoring_jira-middleware
+        type: webhook
+        settings:
+          url: http://jira-middleware:8090
+          httpMethod: POST
+
+groups:
+  - orgId: 1
+    name: slo
+    folder: alert
+    interval : 1m
+    rules:
+      - uid: user_info_sev_2
+        title: user_info:sev_2
+        condition: Threshold
+        data:
+          - refId: Good Event Series
+            queryType: range
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: P8E80F9AEF21F6940
+            model:
+              editorMode: builder
+              expr: >-
+                sum(count_over_time({job="applog"} | logfmt | path = `/user/info` |
+                status  =~ `2[0-9]{2}` [$__interval]))
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: range
+              refId: Good Event Series
+          - refId: Eligible Event Series
+            queryType: range
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: P8E80F9AEF21F6940
+            model:
+              datasource:
+                type: loki
+                uid: P8E80F9AEF21F6940
+              editorMode: builder
+              expr: >-
+                sum(count_over_time({job="applog"} | logfmt | path = `/user/info` |
+                status  =~ `2[0-9]{2}|5[0-9]{2}` [$__interval]))
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: range
+              refId: Eligible Event Series
+          - refId: Good Event
+            queryType: ''
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: '-100'
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: '-100'
+              expression: Good Event Series
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: sum
+              refId: Good Event
+              type: reduce
+          - refId: Eligible Event
+            queryType: ''
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: '-100'
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: Eligible Event Series
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: sum
+              refId: Eligible Event
+              type: reduce
+          - refId: Error Rate
+            queryType: ''
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: '-100'
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: '100 * (${Eligible Event} - ${Good Event})/${Eligible Event}'
+              hide: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: Error Rate
+              type: math
+          - refId: Threshold
+            queryType: ''
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: '-100'
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: Error Rate
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: Threshold
+              type: threshold
+        noDataState: OK
+        dashboardUid: user_info_sev_2
+        for: 0s
+        labels:
+          severity: '2'
+
+policies:
+  - orgId: 1
+    receiver: grafana-default-email
+    group_by: ['...']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 1h
+    routes:
+      - receiver: sev_1_contact_point
+        matchers:
+          - severity = 1
+      - receiver: sev_2_contact_point
+        matchers:
+          - severity = 2
+
+
+templates:
+  - orgID: 1
+    name: monitoring_template
+    template: "Monitoring Alert\n{{ range .Alerts.Firing }}Summary of {{ .Labels.alertname }}:\nLabels: {{ range .Labels.SortedPairs }}({{ .Name }},{{ .Value }}) {{ end }}\nAnnotations: {{ range .Annotations.SortedPairs }}({{ .Name }},{{ .Value }}) {{ end }}{{ end }}"

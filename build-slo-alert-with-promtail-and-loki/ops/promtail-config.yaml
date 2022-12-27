@@ -20,6 +20,10 @@ scrape_configs:
   - logfmt:
       mapping:
         timestamp: time
+        method:
+        path:
+        status:
+        elapsed:
   - timestamp:
       source: timestamp
       format: RFC3339Nano

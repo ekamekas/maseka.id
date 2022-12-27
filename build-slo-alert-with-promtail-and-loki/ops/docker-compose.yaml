@@ -1,6 +1,6 @@
 services:
   app:
-    image: "ekamekas/promtail-demo-app"
+    image: "ekamekas/promtail-demo-app:sev_1"
     volumes:
       - "log-data:/var/log"
     ports:
@@ -24,11 +24,14 @@ services:
       - "./loki-config.yaml:/etc/loki/loki-config.yaml"
     networks:
       - back-tier
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/loki-config.yaml
   monitoring:
     image: "grafana/grafana-oss"
     volumes:
       - "./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml"
+      - "./grafana-alerting.yaml:/etc/grafana/provisioning/alerting/alerting.yaml"
+      - "./grafana-dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml"
+      - "./grafana-user_service_dashboard.json:/etc/dashboards/user/user-service_dashboard.json"
     ports:
       - "3000:3000"
     networks:
